@@ -18,8 +18,14 @@ module.exports = function(config) {
                 if (err) {
                     next(err);
                 } else {
-                    console.log(JSON.stringify(res));
-                    message.intents = res.outcomes;
+                    message.allOutcomes = res.outcomes.sort(function(a,b) {
+                        return b.confidence - a.confidence;
+                    });
+                    message.outcomes = message.allOutcomes[0];
+                    message.q = {}
+                    for (var k in message.outcomes.entities) {
+                      message.q[k] = message.outcomes.entities[k][0].value;
+                    }
                     next();
                 }
             });
@@ -28,12 +34,13 @@ module.exports = function(config) {
     };
 
     middleware.hears = function(tests, message) {
-
-        if (message.intents) {
-            for (var i = 0; i < message.intents.length; i++) {
+      var entities = message.allOutcomes[0].entities;
+      if (!entities.intent) return false;
+        if (Object.keys(entities).length > 0) {
+            for (var i = 0; i < entities.intent.length; i++) {
                 for (var t = 0; t < tests.length; t++) {
-                    if (message.intents[i].intent == tests[t] &&
-                        message.intents[i].confidence >= config.minimum_confidence) {
+                    if (entities.intent[i].value == tests[t] &&
+                        entities.intent[i].confidence >= config.minimum_confidence) {
                         return true;
                     }
                 }
@@ -42,8 +49,6 @@ module.exports = function(config) {
 
         return false;
     };
-
-
     return middleware;
 
 };
