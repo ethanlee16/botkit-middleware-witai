@@ -15,7 +15,9 @@ module.exports = function(config) {
     middleware.receive = function(bot, message, next) {
         if (message.text) {
             wit.captureTextIntent(config.token, message.text, function(err, res) {
+              console.log(res);
                 if (err) {
+                  console.log("WIT ERR", err);
                     next(err);
                 } else {
                     message.allOutcomes = res.outcomes.sort(function(a,b) {
@@ -24,7 +26,12 @@ module.exports = function(config) {
                     message.outcomes = message.allOutcomes[0];
                     message.q = {}
                     for (var k in message.outcomes.entities) {
-                      message.q[k] = message.outcomes.entities[k][0].value;
+                        if (message.outcomes.entities[k].length > 1) {
+                            message.q[k] = [];
+                            message.outcomes.entities[k].forEach(e => message.q[k].push(e.value));
+                        } else {
+                            message.q[k] = message.outcomes.entities[k][0].value;
+                        }
                     }
                     next();
                 }
@@ -34,7 +41,7 @@ module.exports = function(config) {
     };
 
     middleware.hears = function(tests, message) {
-      var entities = message.allOutcomes[0].entities;
+      var entities = message.allOutcomes[0].entities
       if (!entities.intent) return false;
         if (Object.keys(entities).length > 0) {
             for (var i = 0; i < entities.intent.length; i++) {
